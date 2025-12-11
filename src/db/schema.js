@@ -6,11 +6,11 @@ export const users = sqliteTable('users', {
         .primaryKey()
         .$defaultFn(() => randomUUID()),
     email: text().notNull().unique(),
-    first_name: text({length: 30}).notNull(),
-    last_name: text({length: 30}).notNull(),
+    firstName: text('first_name', {length: 30}).notNull(),
+    lastName: text('last_name', {length: 30}).notNull(),
     password: text({length: 255}).notNull(),
-    is_admin: integer({mode: 'boolean'}).default(false),
-    createdAt: integer('created_at', {mode: 'timestamp'}).$defaultFn( () => new Date())
+    isAdmin: integer('is_admin', {mode: 'boolean'}).default(false),
+    createdAt: integer('created_at', {mode: 'timestamp'}).$defaultFn( () => new Date() )
 }); 
 
 export const collections = sqliteTable('collections', {
@@ -40,14 +40,15 @@ export const flashcards = sqliteTable('flashcards', {
 });
 
 export const revisions = sqliteTable('revisions', {
+    id: text().
+        primaryKey().
+        $defaultFn(() => randomUUID() ),
     userId: text('user_id').
-            primaryKey().
             references(() => users.id, {onDelete: 'cascade'})
             .notNull(),
-    flashcardID: text('flashcard_id').
-        primaryKey().
+    flashcardId: text('flashcard_id').
         references(() => flashcards.id, {onDelete: 'cascade'})
         .notNull(),
-    level: integer({enum: [1, 2, 3, 4, 5]}).notNull(),f
-    last_review: date()
+    level: integer({enum: [1, 2, 3, 4, 5]}).notNull(),
+    lastReview: integer('last_review', {mode: 'timestamp'}).notNull()
 });
