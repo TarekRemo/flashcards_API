@@ -1,0 +1,19 @@
+{
+  "name": "flashcards_api",
+  "version": "1.0.0",
+  "description": "Flashcards API with express",
+  "type": "module",
+  "dependencies": {
+    "drizzle-orm": "^0.45.0",
+    "express": "^5.2.1",
+    "dotenv": "^17.2.3"
+  },
+  "scripts": {
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "node src/db/seed.js"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.5"
+  }
+}
