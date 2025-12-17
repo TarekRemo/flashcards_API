@@ -5,7 +5,7 @@ export const validateBody = (schema) => {
             next();
         }
         catch (err) {
-            return res.status(400).send({ error: err.message });
+            return res.status(400).send({ error: "Invalid request body" });
         }
 
     };
@@ -18,8 +18,7 @@ export const validateParams = (schema) => {
             next();
         }
         catch (err) {
-            return res.status(400).send({ error: err.message });
+            return res.status(400).send({ error: "Invalid request parameters" });
         }
-
     };
 }
