@@ -18,18 +18,57 @@ export const getCollections = async (req, res) => {
 	}
 }
 
-export const createCollection = (req, res) => {
-	const { question, answer } = req.body
+export const createCollection = async (req, res) => {
+	const { title, description, isPrivate } = req.body
 
-	if (!question || !answer) {
-		res.status(400).send({ message: 'Question and answer are required' })
+	if (!title || !description) {
+		res.status(400).send({ message: 'Title and description are required' })
 	}
 
-	res.status(201).send({ message: 'Question created' })
+	try {
+        const [newCollection] = await db.insert(collections).values({
+			userId,
+            title,
+            description,
+            isPrivate,
+        }).returning()
+
+        res.status(201).json({
+            message: 'Collection created',
+            data: newCollection,
+        })
+    } catch (error) {
+        console.log(error)
+        res.status(500).send({
+            error: 'Failed to create collection'
+        })
+    }
 }
 
-export const deleteCollection = (req, res) => {
+export const deleteCollection = async (req, res) => {
 	const { id } = req.params
 
 	res.status(200).send({ message: `Question ${id} deleted` })
+
+	     try{
+        const [deleted] = await db.delete(collections).where(eq(collections.id, id)).returning();
+        if(!deleted){
+            return res.status(404).json({
+                message: 'Collection not found',
+                data: deleted,
+            });
+        }
+
+        return res.status(200).json({
+            message: 'Collection deleted',
+            data: deleted,
+        });
+        
+    }
+    catch(err){
+        res.status(500).send({
+            error: err.message
+        });
+    }   
 }
+
