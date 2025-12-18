@@ -1,5 +1,5 @@
 import {db} from "../db/database.js"; 
-import {collections, flashcards, users} from "../db/schema.js"
+import {collections, flashcards, users, revisions} from "../db/schema.js"
 import { request, response } from 'express'
 import {eq} from 'drizzle-orm';
 
@@ -196,7 +196,7 @@ export const deleteFlashcard = async (req, res) => {
         }
 
         const [deleted] = await db.delete(flashcards).where(eq(flashcards.id, id)).returning();
-        
+
         if(!deleted){
             return res.status(404).json({
                 message: 'flashcard not found',
@@ -215,4 +215,54 @@ export const deleteFlashcard = async (req, res) => {
             error: "internal server error"
         });
     }   
+}
+
+async function hasToBeReviewed(flashcard, user) {
+    
+    var selection = await db
+        .select()
+        .from(revisions)
+        .where(
+            eq(revisions.flashcardId, flashcard.id),
+            eq(revisions.userId, user.id)
+        );
+    
+    if(selection.length === 0){
+        return true;
+    }
+
+    for (const revision of selection) {
+        const lastReviewDate = new Date(revision.lastReview);
+        const now = new Date();
+
+        const diffTime = now - lastReviewDate;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if(diffDays < 0)
+            return false;
+
+        var intervalDays;
+        switch(revision.level){
+            case 1:
+                intervalDays = 1;
+                break;
+            case 2:
+                intervalDays = 2;
+                break;
+            case 3:
+                intervalDays = 4;
+                break;
+            case 4:
+                intervalDays = 8;
+                break;
+            case 5:
+                intervalDays = 16;
+                break;
+        }
+
+        
+
+    }
+
+
 }
