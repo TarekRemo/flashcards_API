@@ -57,7 +57,7 @@ export const getAllFlashcards = async (req, res) => {
         const {userId} = req.user;
 
         if(! await checkReadingRightsOnCollection(collectionId, userId, res)){
-        return;
+            return;
         }
         const result = await db
         .select()
@@ -168,24 +168,51 @@ export const createFlashcard = async (req, res)=>{
 export const deleteFlashcard = async (req, res) => {
     const {id} = req.params;
      try{
+        var selection = await db
+            .select()
+            .from(flashcards)
+            .where(eq(flashcards.id, id));
 
-        const [deleted] = await db.delete(Flashcards).where(eq(Flashcards.id, id)).returning();
+        if(selection.length === 0){
+            return res.status(404).json({
+                message: 'flashcard not found',
+            });
+        }
+
+        const flashcard = selection[0];
+
+        selection = await db
+            .select()
+            .from(collections)
+            .where(eq(collections.id, flashcard.collectionId));
+
+        const collection = selection[0];
+        const {userId} = req.user;
+
+        if(collection.userId !== userId){
+            return res.status(403).json({
+                message: 'You do not have rights to delete flashcards from this collection',
+            });
+        }
+
+        const [deleted] = await db.delete(flashcards).where(eq(flashcards.id, id)).returning();
+        
         if(!deleted){
             return res.status(404).json({
                 message: 'flashcard not found',
-                data: deleted,
             });
         }
 
         return res.status(200).json({
-            message: 'flashcard created',
-            data: result,
+            message: 'flashcard deleted successfully',
+            data: deleted,
         });
         
     }
     catch(err){
+        console.error(err);
         res.status(500).send({
-            error: err.message
+            error: "internal server error"
         });
     }   
 }
