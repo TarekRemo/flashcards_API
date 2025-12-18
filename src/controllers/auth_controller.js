@@ -31,9 +31,9 @@ export const register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 12);
 
         const [ newUser ] = await db.insert(users).values({
-            firstName: firstName,
-            lastName: lastName,
-            email: email,
+            firstName,
+            lastName,
+            email,
             password: hashedPassword
         })
         .returning({
