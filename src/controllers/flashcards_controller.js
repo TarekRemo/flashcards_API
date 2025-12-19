@@ -1,7 +1,7 @@
 import {db} from "../db/database.js"; 
 import {collections, flashcards, users, revisions} from "../db/schema.js"
 import { request, response } from 'express'
-import {eq} from 'drizzle-orm';
+import {eq, and} from 'drizzle-orm';
 
 /**
  * 
@@ -217,19 +217,80 @@ export const deleteFlashcard = async (req, res) => {
     }   
 }
 
-async function hasToBeReviewed(flashcard, user) {
+export const getFlashcardsToReview = async (req, res) => {
+    try{
+        const {collectionId} = req.params;
+        const {userId} = req.user;
+
+        if(! await checkReadingRightsOnCollection(collectionId, userId, res)){
+            return;
+        }
+
+        var selection = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, userId));
+            
+        const user = selection[0];
+
+        selection = await db
+            .select()
+            .from(flashcards)
+            .where(eq(flashcards.collectionId, collectionId));
+
+        const flashcardsToReview = [];
+        for (const flashcard of selection) {
+            if(await hasToBeReviewed(flashcard, user)){
+                flashcardsToReview.push(flashcard);
+            }
+        }
+        res.status(200).json(flashcardsToReview);
+    }
+    catch(err){
+        console.error(err);
+        res.status(500).send({
+            error: 'Internal server error'
+        });
+    }
+}
+
+export const createReview = async (req, res) => {
+   const { flashcardId, level } = req.body;
+   const { userId } = req.user;
+    try {
+        const result = await db
+            .insert(revisions)
+            .values({
+                flashcardId,
+                userId,
+                level,
+                lastReview: new Date()
+            })
+            .returning();
+        res.status(201).json({
+            message: 'review created',
+            data: result,
+        });
+    }
+    catch(err){
+        console.error(err);
+        res.status(500).send({
+            error: "Internal server error"
+        });
+    }
+}
+
+const hasToBeReviewed = async (flashcard, user) => {
     
     var selection = await db
         .select()
         .from(revisions)
         .where(
-            eq(revisions.flashcardId, flashcard.id),
-            eq(revisions.userId, user.id)
+            and(
+                eq(revisions.flashcardId, flashcard.id),
+                eq(revisions.userId, user.id)
+            )
         );
-    
-    if(selection.length === 0){
-        return true;
-    }
 
     for (const revision of selection) {
         const lastReviewDate = new Date(revision.lastReview);
@@ -260,9 +321,10 @@ async function hasToBeReviewed(flashcard, user) {
                 break;
         }
 
-        
+        if(diffDays >= intervalDays){
+            return true;
+        }
 
     }
-
-
+    return false;
 }
