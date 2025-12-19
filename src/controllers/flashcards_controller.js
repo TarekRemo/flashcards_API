@@ -217,7 +217,7 @@ export const deleteFlashcard = async (req, res) => {
     }   
 }
 
-export const getFlashcardsToReview = async (req, res) => {
+export const getFlashcardsToRevise = async (req, res) => {
     try{
         const {collectionId} = req.params;
         const {userId} = req.user;
@@ -238,13 +238,13 @@ export const getFlashcardsToReview = async (req, res) => {
             .from(flashcards)
             .where(eq(flashcards.collectionId, collectionId));
 
-        const flashcardsToReview = [];
+        const flashcardsToRevise = [];
         for (const flashcard of selection) {
-            if(await hasToBeReviewed(flashcard, user)){
-                flashcardsToReview.push(flashcard);
+            if(await hasToBeRevised(flashcard, user)){
+                flashcardsToRevise.push(flashcard);
             }
         }
-        res.status(200).json(flashcardsToReview);
+        res.status(200).json(flashcardsToRevise);
     }
     catch(err){
         console.error(err);
@@ -254,10 +254,59 @@ export const getFlashcardsToReview = async (req, res) => {
     }
 }
 
-export const createReview = async (req, res) => {
+export const createRevision= async (req, res) => {
    const { flashcardId, level } = req.body;
    const { userId } = req.user;
     try {
+
+        var selection = await db
+            .select()
+            .from(flashcards)
+            .where(eq(flashcards.id, flashcardId));
+
+        if(selection.length === 0){
+            return res.status(404).send({
+                error: 'Flashcard not found'
+            });
+        }
+
+        const collectionId = selection[0].collectionId;
+
+        if(! await checkReadingRightsOnCollection(collectionId, userId, res)){
+            return;
+        }
+
+        selection = await db
+            .select()
+            .from(revisions)
+            .where(
+                and(
+                    eq(revisions.flashcardId, flashcardId),
+                    eq(revisions.userId, userId)
+                )
+            );
+
+        if(selection.length > 0){
+            const [updated] = await db
+                .update(revisions)
+                .set({
+                    level,
+                    lastReview: new Date()
+                })
+                .where(
+                    and(
+                        eq(revisions.flashcardId, flashcardId),
+                        eq(revisions.userId, userId)
+                    )
+                )
+                .returning();
+
+            return res.status(200).json({
+                message: 'review updated',
+                data: updated,
+            });
+        }
+
         const result = await db
             .insert(revisions)
             .values({
@@ -280,7 +329,7 @@ export const createReview = async (req, res) => {
     }
 }
 
-const hasToBeReviewed = async (flashcard, user) => {
+const hasToBeRevised = async (flashcard, user) => {
     
     var selection = await db
         .select()
