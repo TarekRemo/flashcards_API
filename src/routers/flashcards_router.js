@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { getAllFlashcards, getFlashcard, createFlashcard, updateFlashcard, deleteFlashcard, getFlashcardsToRevise, createRevision} from "../controllers/flashcards_controller.js";
+import {getAllFlashcards, getFlashcard, getFlashcardsToRevise, createFlashcard,
+         createRevision, updateFlashcard, deleteFlashcard} from "../controllers/flashcards_controller.js";
 import { validateBody } from "../middlewares/validation.js";
 import { createFlashcardSchema, updateFlashcardSchema } from "../models/flashcards.js";
 import { revisionSchema } from "../models/revisions.js";
