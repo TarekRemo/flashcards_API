@@ -21,7 +21,7 @@ const seed = async () => {
                 firstName: 'tarek',
                 lastName: 'remo',
                 password: password,
-                isAdmin: true
+                isAdmin: false
                 
             },
             {
