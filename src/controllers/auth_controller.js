@@ -1,6 +1,6 @@
 import {request, response} from 'express';
 import bcrypt from 'bcrypt';
-import { db } from '../db/database.js';
+import { db, selectUser } from '../db/database.js';
 import {users} from '../db/schema.js';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config'; 
@@ -112,4 +112,31 @@ export const login = async (req, res) => {
     }
 }
 
+export const getProfile = async (req, res) => {
+    try{
+        const {userId} = req.user;
+        const user = await selectUser(userId);
+        if(!user){
+            return res.status(404).json({
+                error: "user not found"
+            });
+        }
+
+        return res.status(200).json({
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            createdAt: user.createdAt
+        });
+    }
+    catch(e){
+        console.log(e);
+        return res.status(500).json({
+            error: "Internal server error"
+            }
+        );
+    }
+}
+    
 
