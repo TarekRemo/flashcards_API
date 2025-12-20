@@ -159,6 +159,61 @@ export const createFlashcard = async (req, res)=>{
     }
 }
 
+export const updateFlashcard = async (req, res) => {
+    const { id, recto, verso, rectoUrl, versoUrl } = req.body;
+    const {userId} = req.user;
+
+    try{
+        var selection = await db
+            .select()
+            .from(flashcards)
+            .where(eq(flashcards.id, id));
+            
+        if(selection.length === 0){
+            return res.status(404).json({
+                message: 'flashcard not found',
+            });
+        }
+
+        const flashcard = selection[0];
+
+        selection = await db
+            .select()
+            .from(collections)
+            .where(eq(collections.id, flashcard.collectionId));
+
+        const collection = selection[0];
+
+        if(collection.userId !== userId){
+            return res.status(403).json({
+                message: 'You do not have rights to update flashcards from this collection',
+            });
+        }
+
+        const [updated] = await db
+            .update(flashcards)
+            .set({
+                recto : recto ? recto : flashcard.recto,
+                verso : verso ? verso : flashcard.verso,
+                rectoUrl : rectoUrl ? rectoUrl : flashcard.rectoUrl,
+                versoUrl : versoUrl ? versoUrl : flashcard.versoUrl
+            })
+            .where(eq(flashcards.id, id))
+            .returning();
+            
+        return res.status(200).json({
+            message: 'flashcard updated successfully',
+            data: updated,
+        });
+    }
+    catch(err){
+        console.error(err);
+        res.status(500).send({
+            error: "internal server error"
+        });
+    }   
+}
+
 /**
  * 
  * @param {request} req 
