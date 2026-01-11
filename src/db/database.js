@@ -1,7 +1,7 @@
 import "dotenv/config";
 import {drizzle} from "drizzle-orm/libsql";
 import {eq} from 'drizzle-orm';
-import {collections, flashcards, users, revisions} from "../db/schema.js"
+import {collections, flashcards, users} from "./schema.js"
 
 export const db = drizzle(process.env.DB_FILE);
 
@@ -12,6 +12,11 @@ export const selectFlashcard = async (id) => {
 
 export const selectCollection = async (id) => {
     const [collection] = await db.select().from(collections).where(eq(collections.id, id));
+    return collection;
+}
+
+export const selectCollections = async (userId) => {
+    const [collection] = await db.select().from(collections).where(eq(collections.userId, userId));
     return collection;
 }
 
