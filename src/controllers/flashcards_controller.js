@@ -1,52 +1,8 @@
-import {db, selectFlashcard, selectFlashcards, selectUser, selectCollection,
+import {db, selectFlashcard, selectFlashcards,
          insertItem, deleteItems, updateItems} from "../db/database.js"; 
 import {flashcards, revisions} from "../db/schema.js"
 import {eq, and} from 'drizzle-orm';
-
-const hasReadingRightsOnCollection = async (userId, collectionId, res) => {
-    const collection = await selectCollection(collectionId);
-    if(!collection){
-        res.status(404).send({
-            error: 'Collection not found'
-        });
-        return false;
-    }
-
-    const user =  await selectUser(userId);
-    if(!user){
-        res.status(404).send({
-            error: 'User not found'
-        });
-        return false;
-    }
-
-    if(!user.isAdmin && collection.userId !== user.id && collection.isPrivate){
-        res.status(403).send({
-            error: 'You do not have rights to view this collection'
-        });
-        return false;
-    }
-    return true;
-};
-
-const hasUpdatingRightsOnCollection = async (userId, collectionId, res) => {
-    const collection = await selectCollection(collectionId);
-
-    if(!collection){
-        res.status(404).send({
-            error: 'Collection not found'
-        });
-        return false;
-    }
-
-    if(collection.userId !== userId){
-        res.status(403).send({
-            error: 'You do not have rights to update this collection'
-        });
-        return false;
-    }
-    return true;
-}
+import {hasReadingRightsOnCollection, hasUpdatingRightsOnCollection} from "../utils/permissions.js";
 
 export const getAllFlashcards = async (req, res) => {
     try{        

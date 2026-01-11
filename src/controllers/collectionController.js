@@ -1,76 +1,192 @@
-import {db} from "../db/database.js"; 
+import {
+    db,
+    deleteItems,
+    insertItem,
+    selectCollection,
+    selectCollections,
+    updateItems
+} from "../db/database.js";
 import {collections} from "../db/schema.js"
-import { request, response } from 'express'
-import {eq, desc} from 'drizzle-orm';
+import {eq,and, like} from 'drizzle-orm';
+import {hasReadingRightsOnCollection, hasUpdatingRightsOnCollection} from "../utils/permissions.js";
+
 
 export const getCollections = async (req, res) => {
-    const { userId } = req.user
 	 try{
-        const result = await db
-            .select()
-            .from(collections)
-			.where(eq(collections.userId, userId))
-            .orderBy(desc(collections.createdAt))
+         const {userId} = req.user;
+        const collections = await selectCollections(userId);
 
-        res.status(200).json(result);
+         if(!collections){
+             return res.status(404).send({
+                 error: 'Flashcard not found'
+             });
+         }
+
+         res.status(200).json(collections);
     }
-	catch (error){
-		res.status(500).json({message: "Error retrieving questions", error: error.message});
-	}
+     catch(err){
+         console.error(err);
+         res.status(500).send({
+             error: 'Internal server error'
+         });
+     }
 }
 
-export const createCollection = async (req, res) => {
-	const { title, description, isPrivate } = req.body
-    const { userId } = req.user
+export const getCollection = async (req, res) => {
+    try{
+        const {id} = req.params;
+        const {userId} = req.user;
 
-	if (!title || !description) {
-		res.status(400).send({ message: 'Title and description are required' })
-	}
+        const collection = await selectCollection(id);
+        if(!collection){
+            return res.status(404).send({
+                error: 'Collection not found'
+            });
+        }
 
-	try {
-        const [newCollection] = await db.insert(collections).values({
-			userId,
-            title,
-            description,
-            isPrivate,
-        }).returning()
+        if(! await hasReadingRightsOnCollection(userId, collection.id, res)){
+            return; //response already sent in the function
+        }
 
-        res.status(201).json({
-            message: 'Collection created',
-            data: newCollection,
-        })
-    } catch (error) {
-        console.log(error)
+        res.status(200).json(collection);
+    }
+    catch(err){
+        console.error(err);
         res.status(500).send({
-            error: 'Failed to create collection'
-        })
+            error: 'Internal server error'
+        });
+    }
+};
+
+export const createCollection = async (req, res)=>{
+    try{
+        const {userId} = req.user;
+        const {title, description, isPrivate} = req.body;
+
+        const result = await insertItem(
+            collections,
+            {
+                userId,
+                title,
+                description,
+                isPrivate
+            }
+        );
+
+        return res.status(201).json({
+            message: 'collection created',
+            data: result,
+        });
+    }
+    catch(err){
+        console.error(err);
+        res.status(500).send({
+            error: "Internal server error"
+        });
+    }
+}
+
+export const updateCollection = async (req, res) => {
+    try{
+        const { id, title, description, isPrivate} = req.body;
+        const {userId} = req.user;
+
+        const collection = await selectCollection(id);
+        if(!collection){
+            return res.status(404).send({
+                error: 'Collection not found'
+            });
+        }
+
+        if(! await hasUpdatingRightsOnCollection(userId, collection.id, res)){
+            return;
+        }
+
+        const [updated] = await updateItems(
+            collections,
+            {
+                title : title ? title : collection.title,
+                description : description ? description : collection.description,
+                isPrivate: isPrivate ?? collection.isPrivate,
+            },
+            eq(collections.id, id)
+        );
+
+        return res.status(200).json({
+            message: 'collection updated successfully',
+            data: updated,
+        });
+    }
+    catch(err){
+        console.error(err);
+        res.status(500).send({
+            error: "internal server error"
+        });
     }
 }
 
 export const deleteCollection = async (req, res) => {
-	const { id } = req.params
+    try{
+        const {id} = req.params;
+        const {userId} = req.user;
 
-	res.status(200).send({ message: `Question ${id} deleted` })
-
-	     try{
-        const [deleted] = await db.delete(collections).where(eq(collections.id, id)).returning();
-        if(!deleted){
+        const collection = await selectCollection(id);
+        if(!collection){
             return res.status(404).json({
-                message: 'Collection not found',
-                data: deleted,
+                message: 'collection not found',
             });
         }
 
+        if(! await hasUpdatingRightsOnCollection(userId, collection.id, res)){
+            return;
+        }
+
+        const [deleted] = await deleteItems(
+            collections,
+            eq(collections.id, id)
+        );
+
         return res.status(200).json({
-            message: 'Collection deleted',
+            message: 'collection deleted successfully',
             data: deleted,
         });
-        
+
     }
     catch(err){
+        console.error(err);
         res.status(500).send({
-            error: err.message
+            error: "internal server error"
         });
-    }   
+    }
 }
+
+export const searchPublicCollections = async (req, res) => {
+    try {
+        const { title } = req.query;
+
+        if (!title) {
+            return res.status(400).send({
+                error: 'Title query parameter is required'
+            });
+        }
+
+        const results = await db
+            .select()
+            .from(collections)
+            .where(
+                and(
+                    eq(collections.isPrivate, false),
+                    like(collections.title, `%${title}%`)
+                )
+            );
+
+        res.status(200).json(results);
+    }
+    catch (err) {
+        console.error(err);
+        res.status(500).send({
+            error: 'Internal server error'
+        });
+    }
+};
 

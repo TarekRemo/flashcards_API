@@ -8,15 +8,17 @@ import { authorize } from "../middlewares/authorization.js";
 
 const flashcardsRouter = Router();
 
-flashcardsRouter.get("/all/:collectionId", authorize, getAllFlashcards);
-flashcardsRouter.get("/:id", authorize, getFlashcard);
-flashcardsRouter.get("/revision/:collectionId", authorize, getFlashcardsToRevise);
+flashcardsRouter.use(authorize);
 
-flashcardsRouter.post("/", authorize, validateBody(createFlashcardSchema), createFlashcard);
+flashcardsRouter.get("/all/:collectionId", getAllFlashcards);
+flashcardsRouter.get("/:id", getFlashcard);
+flashcardsRouter.get("/revision/:collectionId", getFlashcardsToRevise);
 
-flashcardsRouter.put("/revision", authorize, validateBody(revisionSchema), createRevision);
-flashcardsRouter.put("/", authorize, validateBody(updateFlashcardSchema), updateFlashcard);
+flashcardsRouter.post("/", validateBody(createFlashcardSchema), createFlashcard);
 
-flashcardsRouter.delete("/:id", authorize, deleteFlashcard);
+flashcardsRouter.put("/revision", validateBody(revisionSchema), createRevision);
+flashcardsRouter.put("/", validateBody(updateFlashcardSchema), updateFlashcard);
+
+flashcardsRouter.delete("/:id", deleteFlashcard);
 
 export default flashcardsRouter;
