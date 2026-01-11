@@ -16,8 +16,8 @@ export const selectCollection = async (id) => {
 }
 
 export const selectCollections = async (userId) => {
-    const [collection] = await db.select().from(collections).where(eq(collections.userId, userId));
-    return collection;
+    const selection = await db.select().from(collections).where(eq(collections.userId, userId));
+    return selection;
 }
 
 export const selectFlashcards = async (CollectionId) => { 
