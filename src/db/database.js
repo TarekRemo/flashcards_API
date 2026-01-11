@@ -30,6 +30,11 @@ export const selectUser = async (userId) => {
     return user;
 }
 
+export const selectUsers = async () => { 
+    const selection = await db.select().from(users);
+    return selection;
+}
+
 export const insertItem = async (table, values) => {
     const result = await db.insert(table).values(values).returning();
     return result;
