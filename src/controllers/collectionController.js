@@ -18,7 +18,7 @@ export const getCollections = async (req, res) => {
 
          if(!collections){
              return res.status(404).send({
-                 error: 'Flashcard not found'
+                 error: 'Collection not found'
              });
          }
 
